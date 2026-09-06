@@ -1,7 +1,17 @@
+using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour, ICanListenEvent, ICanSendEvent
 {
+    [Header("Basic Info")]
+    [SerializeField]
+    float forceKick = 100f;
+    public float ForceKick => forceKick;
+
+    [SerializeField]
+    float forceDribble = 100;
+    public float ForceDribble => forceDribble;
+
     [SerializeField]
     float speed = 2f;
 
@@ -10,10 +20,15 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField]
     GameObject modelPlayer;
+    public Vector3 PlayerForward => modelPlayer.transform.forward;
     Vector3 _prevDirection;
     StateController _stateController;
     IdleState _idleState;
     RunState _runState;
+    IKick _kickAction;
+
+    [SerializeField]
+    List<GameObject> _availableBalls;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -24,6 +39,7 @@ public class PlayerController : MonoBehaviour
             _runState = new RunState(animator, this);
             _stateController = new StateController(_idleState);
         }
+        _availableBalls = new List<GameObject>();
     }
 
     // Update is called once per frame
@@ -40,7 +56,7 @@ public class PlayerController : MonoBehaviour
     {
         if (direction != Vector3.zero)
         {
-            transform.position = transform.position + direction * speed * Time.deltaTime;
+            transform.position = transform.position + direction.normalized * speed * Time.deltaTime;
             _prevDirection = direction;
         }
     }
@@ -72,6 +88,117 @@ public class PlayerController : MonoBehaviour
         if (_stateController != null && _runState != null)
         {
             _stateController.ChangeState(_runState);
+        }
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if (_stateController != null)
+        {
+            _stateController.OnCollisionEnter(collision);
+        }
+    }
+
+    void SetKickAction(IKick kickAction)
+    {
+        _kickAction = kickAction;
+    }
+
+    public void ExcuteNormalKick()
+    {
+        if (_availableBalls != null && _availableBalls.Count > 0)
+        {
+            GameObject availableBall = SelectAvailableBall();
+            if (availableBall != null)
+            {
+                IKick normalKick = new NormalKick(PlayerForward, availableBall, forceKick);
+                SetKickAction(normalKick);
+                Kick();
+            }
+        }
+    }
+
+    public GameObject SelectAvailableBall()
+    {
+        // ưu tiên góc của bóng  so với hướng của forward nhỏ hơn 150 độ
+        // Nếu nhiều hơn 2 quả bóng thoải mãn về góc thì lấy quả bóng gần nhất
+        List<GameObject> balls = new List<GameObject>();
+        foreach (GameObject ball in _availableBalls)
+        {
+            if (ball != null)
+            {
+                Vector3 ballDirection = ball.transform.position - transform.position;
+                Debug.Log(PlayerForward);
+                float angle = Vector3.Angle(PlayerForward, ballDirection);
+                if (angle <= 75)
+                {
+                    balls.Add(ball);
+                }
+            }
+        }
+        if (balls.Count == 1)
+        {
+            return balls[0];
+        }
+        if (balls.Count > 1)
+        {
+            float nearestDistance = int.MaxValue;
+            GameObject nearestBall = null;
+            foreach (GameObject ball in balls)
+            {
+                if (ball != null)
+                {
+                    float distance = Vector3.SqrMagnitude(
+                        ball.transform.position - transform.position
+                    );
+                    if (distance < nearestDistance)
+                    {
+                        nearestDistance = distance;
+                        nearestBall = ball;
+                    }
+                }
+            }
+            return nearestBall;
+        }
+        return null;
+    }
+
+    public void SetAvailableBall(GameObject availableBall)
+    {
+        if (_availableBalls != null && !_availableBalls.Contains(availableBall))
+        {
+            _availableBalls.Add(availableBall);
+        }
+        if (_availableBalls.Count == 1)
+        {
+            this.Publish(new AvailableToKickEvent());
+        }
+    }
+
+    public void RemoveAvailableBall(GameObject availableBall)
+    {
+        if (_availableBalls.Contains(availableBall))
+        {
+            _availableBalls.Remove(availableBall);
+        }
+        if (_availableBalls.Count == 0)
+        {
+            this.Publish(new NotAvailableToKickEvent());
+        }
+    }
+
+    public void ExcuteAutoKick()
+    {
+        IKick autoKick = new AutoKick(gameObject, forceKick);
+        SetKickAction(autoKick);
+        Kick();
+    }
+
+    public void Kick()
+    {
+        if (_kickAction != null)
+        {
+            _kickAction.Kick();
         }
     }
 }

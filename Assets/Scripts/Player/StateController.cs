@@ -1,3 +1,5 @@
+using UnityEngine;
+
 public class StateController
 {
     IState _currentState;
@@ -19,6 +21,14 @@ public class StateController
         if (_currentState != null)
         {
             _currentState.Update();
+        }
+    }
+
+    public void OnCollisionEnter(Collision collision)
+    {
+        if (_currentState != null)
+        {
+            _currentState.OnCollisionEnter(collision);
         }
     }
 }

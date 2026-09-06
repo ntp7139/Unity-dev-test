@@ -52,4 +52,16 @@ public class RunState : IState
     }
 
     public void Exit() { }
+
+    public void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Ball"))
+        {
+            BallController ball = collision.gameObject.GetComponent<BallController>();
+            if (ball != null && _player != null)
+            {
+                ball.OnKick(_player.PlayerForward, _player.ForceDribble);
+            }
+        }
+    }
 }
