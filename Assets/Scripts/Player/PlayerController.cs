@@ -128,7 +128,6 @@ public class PlayerController : MonoBehaviour, ICanListenEvent, ICanSendEvent
             if (ball != null)
             {
                 Vector3 ballDirection = ball.transform.position - transform.position;
-                Debug.Log(PlayerForward);
                 float angle = Vector3.Angle(PlayerForward, ballDirection);
                 if (angle <= 75)
                 {

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class AutoKick : IKick, ICanSendEvent
+public class AutoKick : IKick
 {
     GameObject _player;
     float _force;

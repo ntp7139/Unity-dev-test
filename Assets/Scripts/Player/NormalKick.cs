@@ -29,7 +29,7 @@ public class NormalKick : IKick
                         Vector2 direction2D = new Vector2(direction.x, direction.z);
                         Vector2 playerForward2D = new Vector2(_playerForward.x, _playerForward.z);
                         float angle = Mathf.Abs(Vector2.SignedAngle(playerForward2D, direction2D));
-                        if (angle <= 120)
+                        if (angle <= 60)
                         {
                             ballController.OnKick(direction, _force);
                             this.Publish(new BallKickEvent(ballController));
